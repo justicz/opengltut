@@ -109,28 +109,6 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Set up our textures
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    // Just repeat the image if the coords are > 1.0 or < 0.0
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // Linearly interpolate pixels values for sampling
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Load the texture bytes into a buffer
-    int width, height;
-    unsigned char* image = SOIL_load_image("fox.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-    printf("Loaded texture: %ipx, %ipx\n", width, height);
-
-    // Fill the texture buffer with the image bytes
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    SOIL_free_image_data(image);
-
     // Compile the shaders
     GLuint fragmentShader = compile_fragment_shader();
     GLuint vertexShader = compile_vertex_shader();
@@ -144,6 +122,61 @@ int main()
     glBindFragDataLocation(shaderProgram, 0, "outColor");
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
+
+    // Set up our textures
+    GLuint textures[2];
+    glGenTextures(2, textures);
+
+    int width, height;
+    unsigned char* image;
+
+    ////////////////////////////////////////////
+    ///////////////// FOX //////////////////////
+    ////////////////////////////////////////////
+    
+    // Load the fox texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    image = SOIL_load_image("fox.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+    printf("Loaded texture: %ipx, %ipx\n", width, height);
+
+    // Just repeat the image if the coords are > 1.0 or < 0.0
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // Linearly interpolate pixels values for sampling
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Fill the texture buffer with the image bytes
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    SOIL_free_image_data(image);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texFox"), 0);
+
+    ////////////////////////////////////////////
+    ///////////////// CAT //////////////////////
+    ////////////////////////////////////////////    
+
+    // Load the fox texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    image = SOIL_load_image("husky.png", &width, &height, 0, SOIL_LOAD_RGB);
+    printf("Loaded texture: %ipx, %ipx\n", width, height);
+
+    // Just repeat the image if the coords are > 1.0 or < 0.0
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // Linearly interpolate pixels values for sampling
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Fill the texture buffer with the image bytes
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    SOIL_free_image_data(image);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texCat"), 1);
+    
+    //////////////////////////////////////////////////////////
 
     // identify the position attribute in our vertex buffer
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");

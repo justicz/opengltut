@@ -1,6 +1,11 @@
+#define GLM_FORCE_RADIANS
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <SOIL/SOIL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <thread>
 #include <string>
 #include <fstream>
@@ -109,28 +114,6 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // Set up our textures
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    // Just repeat the image if the coords are > 1.0 or < 0.0
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // Linearly interpolate pixels values for sampling
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Load the texture bytes into a buffer
-    int width, height;
-    unsigned char* image = SOIL_load_image("fox.jpg", &width, &height, 0, SOIL_LOAD_RGB);
-    printf("Loaded texture: %ipx, %ipx\n", width, height);
-
-    // Fill the texture buffer with the image bytes
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    SOIL_free_image_data(image);
-
     // Compile the shaders
     GLuint fragmentShader = compile_fragment_shader();
     GLuint vertexShader = compile_vertex_shader();
@@ -144,6 +127,61 @@ int main()
     glBindFragDataLocation(shaderProgram, 0, "outColor");
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
+
+    // Set up our textures
+    GLuint textures[2];
+    glGenTextures(2, textures);
+
+    int width, height;
+    unsigned char* image;
+
+    ////////////////////////////////////////////
+    ///////////////// FOX //////////////////////
+    ////////////////////////////////////////////
+    
+    // Load the fox texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textures[0]);
+    image = SOIL_load_image("fox.jpg", &width, &height, 0, SOIL_LOAD_RGB);
+    printf("Loaded texture: %ipx, %ipx\n", width, height);
+
+    // Just repeat the image if the coords are > 1.0 or < 0.0
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // Linearly interpolate pixels values for sampling
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Fill the texture buffer with the image bytes
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    SOIL_free_image_data(image);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texFox"), 0);
+
+    ////////////////////////////////////////////
+    ///////////////// CAT //////////////////////
+    ////////////////////////////////////////////    
+
+    // Load the fox texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, textures[1]);
+    image = SOIL_load_image("husky.png", &width, &height, 0, SOIL_LOAD_RGB);
+    printf("Loaded texture: %ipx, %ipx\n", width, height);
+
+    // Just repeat the image if the coords are > 1.0 or < 0.0
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // Linearly interpolate pixels values for sampling
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Fill the texture buffer with the image bytes
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    SOIL_free_image_data(image);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texCat"), 1);
+    
+    //////////////////////////////////////////////////////////
 
     // identify the position attribute in our vertex buffer
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
@@ -160,6 +198,19 @@ int main()
     glEnableVertexAttribArray(texAttrib);
     glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), (void*)(5*sizeof(float)));
 
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(1.2f, 1.2f, 1.2f),
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    );
+    GLint uniView = glGetUniformLocation(shaderProgram, "view");
+    glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
+    
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), 1.0f, 1.0f, 10.0f);
+    GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
+    glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
+
+    // Set up the element buffer
     GLuint elements[] = {
         0, 1, 2,
         2, 3, 0
@@ -170,10 +221,29 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);    
 
+    GLint uniModel = glGetUniformLocation(shaderProgram, "model");
+    GLint uniFade = glGetUniformLocation(shaderProgram, "Fade");
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+
     while(!glfwWindowShouldClose(window))
     {
+        auto t_now = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
+        
+        glm::mat4 model;
+        model = glm::rotate(model, time*glm::radians(10.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        
+        float scaler = (sin(0.5f * time) + 1.0f) / 2.0f; //scaler lol
+        model = glm::scale(model, glm::vec3(scaler, scaler, scaler));
+        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
+
+        glUniform1f(uniFade, (sin(0.5f * time) + 1.0f) / 2.0f);
+        
         glfwSwapBuffers(window);
         glfwPollEvents();
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 
